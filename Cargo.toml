@@ -1,0 +1,20 @@
+[package]
+name = "ethup"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "eth"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5.51", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1.0.100"
+reqwest = { version = "0.12.24", features = ["json", "stream"] }
+dirs = "6.0.0"
+futures-util = "0.3.31"
+flate2 = "1.1.5"
+tar = "0.4.44"
