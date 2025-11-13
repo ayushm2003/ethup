@@ -1,5 +1,7 @@
 use flate2::read::GzDecoder;
 use futures_util::StreamExt;
+use rand::TryRngCore;
+use rand::rand_core::OsRng;
 use reqwest::{Url, get};
 use serde::Deserialize;
 use std::fs::{File, metadata, set_permissions};
@@ -144,4 +146,33 @@ pub async fn download_lighthouse() -> anyhow::Result<()> {
 
 pub fn bin_dir() -> PathBuf {
     dirs::home_dir().unwrap().join(".ethup/bin")
+}
+
+pub fn secret_dir() -> PathBuf {
+    dirs::home_dir().unwrap().join(".ethup/secrets")
+}
+
+async fn create_jwt() -> anyhow::Result<()> {
+    let secrets_path = secret_dir();
+    tokio::fs::create_dir_all(&secrets_path).await?;
+
+    let mut key = [0u8; 32];
+    OsRng.try_fill_bytes(&mut key)?;
+
+    let hex = key.iter().map(|b| format!("{:02x}", b)).collect::<String>();
+	
+	let jwt_path = secrets_path.join("jwt.hex");
+	tokio::fs::write(jwt_path, hex).await?;
+
+    Ok(())
+}
+
+pub async fn ensure_jwt() -> anyhow::Result<PathBuf> {
+	let secrets_dir = secret_dir();
+	let jwt_path = secrets_dir.join("jwt.hex");
+	if !jwt_path.exists() {
+		create_jwt().await?;
+	}
+
+	Ok(jwt_path)
 }

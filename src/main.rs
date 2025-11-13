@@ -4,7 +4,7 @@ mod runner;
 use clap::Parser;
 use cli::{Cli, Commands};
 
-use crate::runner::{bin_dir, download_lighthouse, download_reth};
+use crate::runner::{bin_dir, download_lighthouse, download_reth, ensure_jwt};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -12,14 +12,16 @@ async fn main() -> anyhow::Result<()> {
 
     match args.command {
         Commands::Run => {
-			let bin_dir = bin_dir();
+            let bin_dir = bin_dir();
             if !bin_dir.join("reth").exists() {
-                download_reth().await?
+                download_reth().await?;
             }
 
             if !bin_dir.join("lighthouse").exists() {
-                download_lighthouse().await?
+                download_lighthouse().await?;
             }
+
+            let _jwt_path = ensure_jwt().await?;
         }
         Commands::Status => println!("printing status"),
     }
