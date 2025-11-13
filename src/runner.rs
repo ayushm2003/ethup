@@ -1,34 +1,31 @@
-use std::path::Path;
 use std::process::Stdio;
 use tokio::{
     process::{Child, Command},
     signal,
 };
 
-use crate::layout::{bin_dir, data_dir};
+use crate::config::{ClConfig, ElConfig};
 
-pub fn spawn_reth(jwt_path: &Path) -> anyhow::Result<Child> {
-    let reth_bin = bin_dir().join("reth");
-    let reth_data = data_dir().join("reth");
-    std::fs::create_dir_all(&reth_data)?;
+pub fn spawn_el(cfg: &ElConfig) -> anyhow::Result<Child> {
+    std::fs::create_dir_all(&cfg.data_dir)?;
 
-    let child = Command::new(reth_bin)
+    let child = Command::new(&cfg.bin)
         .arg("node")
         .arg("--chain")
-        .arg("hoodi")
+        .arg(&cfg.chain)
         .arg("--datadir")
-        .arg(reth_data)
+        .arg(&cfg.data_dir)
         .arg("--authrpc.addr")
-        .arg("127.0.0.1")
+        .arg(&cfg.authrpc_addr)
         .arg("--authrpc.port")
-        .arg("8551")
+        .arg(cfg.authrpc_port.to_string())
         .arg("--authrpc.jwtsecret")
-        .arg(jwt_path)
+        .arg(&cfg.jwt_path)
         .arg("--http")
         .arg("--http.addr")
-        .arg("127.0.0.1")
+        .arg(&cfg.http_addr)
         .arg("--http.port")
-        .arg("8545")
+        .arg(cfg.http_port.to_string())
         .arg("--http.api")
         .arg("all")
         .stdout(Stdio::inherit())
@@ -38,25 +35,26 @@ pub fn spawn_reth(jwt_path: &Path) -> anyhow::Result<Child> {
     Ok(child)
 }
 
-pub fn spawn_lighthouse(jwt_path: &Path) -> anyhow::Result<Child> {
-    let lh_bin = bin_dir().join("lighthouse");
-    let lh_data = data_dir().join("lighthouse");
+pub fn spawn_cl(cfg: &ClConfig) -> anyhow::Result<Child> {
+    std::fs::create_dir_all(&cfg.data_dir)?;
 
-    std::fs::create_dir_all(&lh_data)?;
-
-    let child = Command::new(lh_bin)
-        .arg("bn")
+    let mut cmd = Command::new(&cfg.bin);
+    cmd.arg("bn")
         .arg("--network")
-        .arg("hoodi")
+        .arg(&cfg.chain)
         .arg("--datadir")
-        .arg(lh_data)
+        .arg(&cfg.data_dir)
         .arg("--execution-endpoint")
-        .arg("http://127.0.0.1:8551")
+        .arg(&cfg.execution_endpoint)
         .arg("--execution-jwt")
-        .arg(jwt_path)
-        .arg("--checkpoint-sync-url")
-        .arg("https://checkpoint-sync.hoodi.ethpandaops.i")
-        .arg("--http")
+        .arg(&cfg.execution_jwt)
+        .arg("--http");
+
+    if let Some(ref url) = cfg.checkpoint_sync_url {
+        cmd.arg("--checkpoint-sync-url").arg(url);
+    }
+
+    let child = cmd
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .spawn()?;

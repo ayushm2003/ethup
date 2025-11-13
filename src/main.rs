@@ -1,4 +1,6 @@
+mod chains;
 mod cli;
+mod config;
 mod install;
 mod layout;
 mod runner;
@@ -6,9 +8,10 @@ mod runner;
 use clap::Parser;
 use cli::{Cli, Commands};
 
+use crate::chains::hoodi_config;
 use crate::install::{download_lighthouse, download_reth, ensure_jwt};
 use crate::layout::bin_dir;
-use crate::runner::{spawn_lighthouse, spawn_reth, start_nodes};
+use crate::runner::{spawn_cl, spawn_el, start_nodes};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -25,10 +28,10 @@ async fn main() -> anyhow::Result<()> {
                 download_lighthouse().await?;
             }
 
-            let jwt_path = ensure_jwt().await?;
-
-            let mut el = spawn_reth(&jwt_path)?;
-            let mut cl = spawn_lighthouse(&jwt_path)?;
+            let _ = ensure_jwt().await?;
+            let (el_hoodi, cl_hoodi) = hoodi_config();
+            let mut el = spawn_el(&el_hoodi)?;
+            let mut cl = spawn_cl(&cl_hoodi)?;
 
             start_nodes(&mut el, &mut cl).await?;
         }
