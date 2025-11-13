@@ -4,24 +4,38 @@ mod runner;
 use clap::Parser;
 use cli::{Cli, Commands};
 
-use crate::runner::download_reth;
+use crate::runner::{download_lighthouse, download_reth};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Cli::parse();
 
     match args.command {
-        Commands::Run => match runner::run_reth().await {
-            Ok(_) => unimplemented!(),
-            Err(e)
-                if e.downcast_ref::<std::io::Error>()
-                    .map(|io| io.kind() == std::io::ErrorKind::NotFound)
-                    .unwrap_or(false) =>
-            {
-                download_reth().await?
-            }
-            Err(e) => return Err(e),
-        },
+        Commands::Run => {
+            match runner::check_reth().await {
+                Ok(_) => unimplemented!(),
+                Err(e)
+                    if e.downcast_ref::<std::io::Error>()
+                        .map(|io| io.kind() == std::io::ErrorKind::NotFound)
+                        .unwrap_or(false) =>
+                {
+                    download_reth().await?
+                }
+                Err(e) => return Err(e),
+            };
+
+            match runner::check_lighthouse().await {
+                Ok(_) => unimplemented!(),
+                Err(e)
+                    if e.downcast_ref::<std::io::Error>()
+                        .map(|io| io.kind() == std::io::ErrorKind::NotFound)
+                        .unwrap_or(false) =>
+                {
+                    download_lighthouse().await?
+                }
+                Err(e) => return Err(e),
+            };
+        }
         Commands::Status => println!("printing status"),
     }
 
