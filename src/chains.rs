@@ -28,7 +28,7 @@ pub fn hoodi_config() -> (ElConfig, ClConfig) {
         http_port: 5052,
         execution_endpoint: el.authrpc_url(),
         execution_jwt: jwt,
-        checkpoint_sync_url: Some("https://checkpoint-sync.hoodi.ethpandaops.i".to_string()),
+        checkpoint_sync_url: Some("https://checkpoint-sync.hoodi.ethpandaops.io".to_string()),
     };
 
 	(el, cl)

@@ -48,7 +48,11 @@ pub fn spawn_cl(cfg: &ClConfig) -> anyhow::Result<Child> {
         .arg(&cfg.execution_endpoint)
         .arg("--execution-jwt")
         .arg(&cfg.execution_jwt)
-        .arg("--http");
+        .arg("--http")
+        .arg("--http-address")
+        .arg(&cfg.http_addr)
+        .arg("--http-port")
+        .arg(cfg.http_port.to_string());
 
     if let Some(ref url) = cfg.checkpoint_sync_url {
         cmd.arg("--checkpoint-sync-url").arg(url);
