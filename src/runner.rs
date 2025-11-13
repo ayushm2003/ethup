@@ -3,6 +3,7 @@ use futures_util::StreamExt;
 use reqwest::{Url, get};
 use serde::Deserialize;
 use std::os::unix::fs::PermissionsExt;
+use std::path::PathBuf;
 use std::{
     fs::{File, metadata, set_permissions},
     process::Stdio,
@@ -87,7 +88,7 @@ pub async fn download_reth() -> anyhow::Result<()> {
     let tar = GzDecoder::new(tar_gz);
     let mut archive = Archive::new(tar);
 
-    let bin_dir = dirs::home_dir().unwrap().join(".ethup/bin");
+    let bin_dir = bin_dr();
     std::fs::create_dir_all(&bin_dir)?;
     archive.unpack(&bin_dir)?;
 
@@ -97,7 +98,6 @@ pub async fn download_reth() -> anyhow::Result<()> {
 
     Ok(())
 }
-
 
 pub async fn check_lighthouse() -> anyhow::Result<()> {
     let mut child = Command::new("lighthouse")
@@ -164,13 +164,17 @@ pub async fn download_lighthouse() -> anyhow::Result<()> {
     let tar = GzDecoder::new(tar_gz);
     let mut archive = Archive::new(tar);
 
-    let bin_dir = dirs::home_dir().unwrap().join(".ethup/bin");
+    let bin_dir = bin_dr();
     std::fs::create_dir_all(&bin_dir)?;
     archive.unpack(&bin_dir)?;
 
     let mut perms = metadata(bin_dir.join("lighthouse"))?.permissions();
     perms.set_mode(0o755);
-    set_permissions(bin_dir.join("reth"), perms)?;
+    set_permissions(bin_dir.join("lighthouse"), perms)?;
 
     Ok(())
+}
+
+pub fn bin_dr() -> PathBuf {
+    dirs::home_dir().unwrap().join(".ethup/bin")
 }
