@@ -2,29 +2,11 @@ use flate2::read::GzDecoder;
 use futures_util::StreamExt;
 use reqwest::{Url, get};
 use serde::Deserialize;
+use std::fs::{File, metadata, set_permissions};
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
-use std::{
-    fs::{File, metadata, set_permissions},
-    process::Stdio,
-};
 use tar::Archive;
-use tokio::{io::AsyncWriteExt, process::Command};
-
-pub async fn check_reth() -> anyhow::Result<()> {
-    let mut child = Command::new("reth")
-        .arg("--version")
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()?;
-
-    let status = child.wait().await?;
-    if !status.success() {
-        anyhow::bail!("reth exited with status {:?}", status.code());
-    }
-
-    Ok(())
-}
+use tokio::io::AsyncWriteExt;
 
 #[derive(Deserialize)]
 struct Release {
@@ -88,28 +70,13 @@ pub async fn download_reth() -> anyhow::Result<()> {
     let tar = GzDecoder::new(tar_gz);
     let mut archive = Archive::new(tar);
 
-    let bin_dir = bin_dr();
+    let bin_dir = bin_dir();
     std::fs::create_dir_all(&bin_dir)?;
     archive.unpack(&bin_dir)?;
 
     let mut perms = metadata(bin_dir.join("reth"))?.permissions();
     perms.set_mode(0o755);
     set_permissions(bin_dir.join("reth"), perms)?;
-
-    Ok(())
-}
-
-pub async fn check_lighthouse() -> anyhow::Result<()> {
-    let mut child = Command::new("lighthouse")
-        .arg("--version")
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()?;
-
-    let status = child.wait().await?;
-    if !status.success() {
-        anyhow::bail!("lighthouse exited with status {:?}", status.code());
-    }
 
     Ok(())
 }
@@ -164,7 +131,7 @@ pub async fn download_lighthouse() -> anyhow::Result<()> {
     let tar = GzDecoder::new(tar_gz);
     let mut archive = Archive::new(tar);
 
-    let bin_dir = bin_dr();
+    let bin_dir = bin_dir();
     std::fs::create_dir_all(&bin_dir)?;
     archive.unpack(&bin_dir)?;
 
@@ -175,6 +142,6 @@ pub async fn download_lighthouse() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn bin_dr() -> PathBuf {
+pub fn bin_dir() -> PathBuf {
     dirs::home_dir().unwrap().join(".ethup/bin")
 }
