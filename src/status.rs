@@ -4,6 +4,7 @@ use serde_json::{Value, json};
 use crate::config::{ClConfig, ElConfig};
 
 pub async fn status(el: &ElConfig, cl: &ClConfig) -> anyhow::Result<()> {
+    // TODO: Use structs.
     let el_version = el_rpc(el, "web3_clientVersion", json!([])).await?;
     let el_syncing = el_rpc(el, "eth_syncing", json!([])).await?;
     let head_hex = el_rpc(el, "eth_blockNumber", json!([])).await?;

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 pub struct ElConfig {
-    pub name: String,
+    pub _name: String,
     pub bin: PathBuf,
     pub chain: String,
     pub data_dir: PathBuf,
@@ -23,7 +23,7 @@ impl ElConfig {
 }
 
 pub struct ClConfig {
-    pub name: String,
+    pub _name: String,
     pub bin: PathBuf,
 	pub data_dir: PathBuf,
     pub chain: String,

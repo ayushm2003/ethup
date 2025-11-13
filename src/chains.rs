@@ -8,7 +8,7 @@ pub fn hoodi_config() -> (ElConfig, ClConfig) {
     let jwt = secrets.join("jwt.hex");
 
     let el = ElConfig {
-        name: "reth".to_string(),
+        _name: "reth".to_string(),
         bin: bin.join("reth"),
         data_dir: data.join("reth-hoodi"),
         chain: "hoodi".to_string(),
@@ -20,7 +20,7 @@ pub fn hoodi_config() -> (ElConfig, ClConfig) {
     };
 
     let cl = ClConfig {
-        name: "lighthouse".to_string(),
+        _name: "lighthouse".to_string(),
         bin: bin.join("lighthouse"),
         data_dir: data.join("lighthouse-hoodi"),
         chain: "hoodi".to_string(),
