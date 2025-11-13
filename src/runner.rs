@@ -42,6 +42,8 @@ pub fn spawn_cl(cfg: &ClConfig) -> anyhow::Result<Child> {
     cmd.arg("bn")
         .arg("--network")
         .arg(&cfg.chain)
+        .arg("--listen-address")
+        .arg("0.0.0.0")
         .arg("--datadir")
         .arg(&cfg.data_dir)
         .arg("--execution-endpoint")
