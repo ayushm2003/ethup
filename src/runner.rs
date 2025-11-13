@@ -6,9 +6,11 @@ use reqwest::{Url, get};
 use serde::Deserialize;
 use std::fs::{File, metadata, set_permissions};
 use std::os::unix::fs::PermissionsExt;
+use std::path::Path;
 use std::path::PathBuf;
+use std::process::Stdio;
 use tar::Archive;
-use tokio::io::AsyncWriteExt;
+use tokio::{io::AsyncWriteExt, process::Command};
 
 #[derive(Deserialize)]
 struct Release {
@@ -160,19 +162,90 @@ async fn create_jwt() -> anyhow::Result<()> {
     OsRng.try_fill_bytes(&mut key)?;
 
     let hex = key.iter().map(|b| format!("{:02x}", b)).collect::<String>();
-	
-	let jwt_path = secrets_path.join("jwt.hex");
-	tokio::fs::write(jwt_path, hex).await?;
+
+    let jwt_path = secrets_path.join("jwt.hex");
+    tokio::fs::write(jwt_path, hex).await?;
 
     Ok(())
 }
 
 pub async fn ensure_jwt() -> anyhow::Result<PathBuf> {
-	let secrets_dir = secret_dir();
-	let jwt_path = secrets_dir.join("jwt.hex");
-	if !jwt_path.exists() {
-		create_jwt().await?;
-	}
+    let secrets_dir = secret_dir();
+    let jwt_path = secrets_dir.join("jwt.hex");
+    if !jwt_path.exists() {
+        create_jwt().await?;
+    }
 
-	Ok(jwt_path)
+    Ok(jwt_path)
+}
+
+pub fn data_dir() -> PathBuf {
+    dirs::home_dir().unwrap().join(".ethup/data")
+}
+
+pub async fn run_reth(jwt_path: &Path) -> anyhow::Result<()> {
+    let reth_bin = bin_dir().join("reth");
+    let reth_data = data_dir().join("reth");
+    std::fs::create_dir_all(&reth_data)?;
+
+    let mut child = Command::new(reth_bin)
+        .arg("node")
+        .arg("--chain")
+        .arg("hoodi")
+        .arg("--datadir")
+        .arg(reth_data)
+        .arg("--authrpc.addr")
+        .arg("127.0.0.1")
+        .arg("--authrpc.port")
+        .arg("8551")
+        .arg("--authrpc.jwtsecret")
+        .arg(jwt_path)
+        .arg("--http")
+        .arg("--http.addr")
+        .arg("127.0.0.1")
+        .arg("--http.port")
+        .arg("8545")
+        .arg("--http.api")
+        .arg("all")
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()?;
+
+    let status = child.wait().await?;
+    if !status.success() {
+        anyhow::bail!("reth exited with status {:?}", status.code());
+    }
+
+    Ok(())
+}
+
+pub async fn run_lighthouse(jwt_path: &Path) -> anyhow::Result<()> {
+    let lh_bin = bin_dir().join("lighthouse");
+    let lh_data = data_dir().join("lighthouse");
+
+    std::fs::create_dir_all(&lh_data)?;
+
+    let mut child = Command::new(lh_bin)
+        .arg("bn")
+        .arg("--network")
+        .arg("hoodi")
+        .arg("--datadir")
+        .arg(lh_data)
+        .arg("--execution-endpoint")
+        .arg("http://127.0.0.1:8551")
+        .arg("--execution-jwt")
+        .arg(jwt_path)
+        .arg("--checkpoint-sync-url")
+        .arg("https://checkpoint-sync.hoodi.ethpandaops.i")
+        .arg("--http")
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()?;
+
+    let status = child.wait().await?;
+    if !status.success() {
+        anyhow::bail!("lighthouse exited with status {:?}", status.code());
+    }
+
+    Ok(())
 }

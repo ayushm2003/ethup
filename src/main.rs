@@ -21,7 +21,12 @@ async fn main() -> anyhow::Result<()> {
                 download_lighthouse().await?;
             }
 
-            let _jwt_path = ensure_jwt().await?;
+            let jwt_path = ensure_jwt().await?;
+
+            tokio::try_join!(
+                runner::run_reth(&jwt_path),
+                runner::run_lighthouse(&jwt_path),
+            )?;
         }
         Commands::Status => println!("printing status"),
     }
