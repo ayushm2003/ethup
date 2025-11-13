@@ -10,7 +10,11 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Stdio;
 use tar::Archive;
-use tokio::{io::AsyncWriteExt, process::Command};
+use tokio::{
+    io::AsyncWriteExt,
+    process::{Child, Command},
+    signal,
+};
 
 #[derive(Deserialize)]
 struct Release {
@@ -183,12 +187,12 @@ pub fn data_dir() -> PathBuf {
     dirs::home_dir().unwrap().join(".ethup/data")
 }
 
-pub async fn run_reth(jwt_path: &Path) -> anyhow::Result<()> {
+pub fn spawn_reth(jwt_path: &Path) -> anyhow::Result<Child> {
     let reth_bin = bin_dir().join("reth");
     let reth_data = data_dir().join("reth");
     std::fs::create_dir_all(&reth_data)?;
 
-    let mut child = Command::new(reth_bin)
+    let child = Command::new(reth_bin)
         .arg("node")
         .arg("--chain")
         .arg("hoodi")
@@ -211,21 +215,16 @@ pub async fn run_reth(jwt_path: &Path) -> anyhow::Result<()> {
         .stderr(Stdio::inherit())
         .spawn()?;
 
-    let status = child.wait().await?;
-    if !status.success() {
-        anyhow::bail!("reth exited with status {:?}", status.code());
-    }
-
-    Ok(())
+    Ok(child)
 }
 
-pub async fn run_lighthouse(jwt_path: &Path) -> anyhow::Result<()> {
+pub fn spawn_lighthouse(jwt_path: &Path) -> anyhow::Result<Child> {
     let lh_bin = bin_dir().join("lighthouse");
     let lh_data = data_dir().join("lighthouse");
 
     std::fs::create_dir_all(&lh_data)?;
 
-    let mut child = Command::new(lh_bin)
+    let child = Command::new(lh_bin)
         .arg("bn")
         .arg("--network")
         .arg("hoodi")
@@ -242,9 +241,40 @@ pub async fn run_lighthouse(jwt_path: &Path) -> anyhow::Result<()> {
         .stderr(Stdio::inherit())
         .spawn()?;
 
-    let status = child.wait().await?;
-    if !status.success() {
-        anyhow::bail!("lighthouse exited with status {:?}", status.code());
+    Ok(child)
+}
+
+pub async fn start_nodes(el: &mut Child, cl: &mut Child) -> anyhow::Result<()> {
+    tokio::select! {
+        _ = signal::ctrl_c()  => {
+            eprintln!("Ctrl+C recieved, shutting down clients...");
+
+            if let Some(id) = el.id() {
+                eprintln!("Killing EL pid {}", id);
+                let _ = el.kill().await;
+            }
+
+            if let Some(id) = cl.id() {
+                eprintln!("Killing CL pid {}", id);
+                let _ = cl.kill().await;
+            }
+        },
+
+        status = el.wait() => {
+            let status = status?;
+            eprintln!("EL exited with status {}", status);
+
+            let _ = cl.kill().await;
+            return Err(anyhow::anyhow!("EL exited unexpectedly"));
+        },
+
+        status = cl.wait() => {
+            let status = status?;
+            eprintln!("CL exited with status {}", status);
+
+            let _ = el.kill().await;
+            return Err(anyhow::anyhow!("CL exited unexpectedly"));
+        },
     }
 
     Ok(())
