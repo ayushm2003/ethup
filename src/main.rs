@@ -4,6 +4,7 @@ mod config;
 mod install;
 mod layout;
 mod runner;
+mod status;
 
 use clap::Parser;
 use cli::{Cli, Commands};
@@ -12,6 +13,7 @@ use crate::chains::hoodi_config;
 use crate::install::{download_lighthouse, download_reth, ensure_jwt};
 use crate::layout::bin_dir;
 use crate::runner::{spawn_cl, spawn_el, start_nodes};
+use crate::status::status;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -35,7 +37,10 @@ async fn main() -> anyhow::Result<()> {
 
             start_nodes(&mut el, &mut cl).await?;
         }
-        Commands::Status => println!("printing status"),
+        Commands::Status => {
+			let (el, cl) = hoodi_config();
+			status(&el, &cl).await?;
+		}
     }
 
     Ok(())

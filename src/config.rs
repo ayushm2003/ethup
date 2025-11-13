@@ -35,7 +35,7 @@ pub struct ClConfig {
 }
 
 impl ClConfig {
-    pub fn rpc_url(&self) -> String {
+    pub fn http_url(&self) -> String {
         format!("http://{}:{}", self.http_addr, self.http_port)
     }
 }
