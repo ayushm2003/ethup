@@ -102,11 +102,11 @@ pub fn spawn_cl(cfg: &ClConfig, quiet: bool) -> anyhow::Result<Child> {
 pub async fn start_nodes(el: &mut Child, cl: &mut Child, quiet: bool) -> anyhow::Result<()> {
     if !quiet {
         if let Some(stdout) = el.stdout.take() {
-			tokio::spawn(stream_logs("EL", "\x1b[32m", stdout));
-		}
-		if let Some(stdout) = cl.stdout.take() {
-			tokio::spawn(stream_logs("CL", "\x1b[34m", stdout));
-		}
+            tokio::spawn(stream_logs("EL", "\x1b[32m", stdout));
+        }
+        if let Some(stdout) = cl.stdout.take() {
+            tokio::spawn(stream_logs("CL", "\x1b[34m", stdout));
+        }
     }
 
     tokio::select! {

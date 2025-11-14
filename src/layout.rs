@@ -13,5 +13,5 @@ pub fn data_dir() -> PathBuf {
 }
 
 pub fn log_dir() -> PathBuf {
-	dirs::home_dir().unwrap().join(".ethup/logs")
+    dirs::home_dir().unwrap().join(".ethup/logs")
 }

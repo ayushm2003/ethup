@@ -13,19 +13,19 @@ pub struct ElConfig {
 }
 
 impl ElConfig {
-	pub fn rpc_url(&self) -> String {
-		format!("http://{}:{}", self.http_addr, self.http_port)
-	}
+    pub fn rpc_url(&self) -> String {
+        format!("http://{}:{}", self.http_addr, self.http_port)
+    }
 
-	pub fn authrpc_url(&self) -> String {
-		format!("http://{}:{}", self.authrpc_addr, self.authrpc_port)
-	}
+    pub fn authrpc_url(&self) -> String {
+        format!("http://{}:{}", self.authrpc_addr, self.authrpc_port)
+    }
 }
 
 pub struct ClConfig {
     pub _name: String,
     pub bin: PathBuf,
-	pub data_dir: PathBuf,
+    pub data_dir: PathBuf,
     pub chain: String,
     pub http_addr: String,
     pub http_port: u16,

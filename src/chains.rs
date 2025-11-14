@@ -31,7 +31,7 @@ pub fn _hoodi_config() -> (ElConfig, ClConfig) {
         checkpoint_sync_url: Some("https://checkpoint-sync.hoodi.ethpandaops.io".to_string()),
     };
 
-	(el, cl)
+    (el, cl)
 }
 
 pub fn mainnet_config() -> (ElConfig, ClConfig) {
@@ -64,5 +64,5 @@ pub fn mainnet_config() -> (ElConfig, ClConfig) {
         checkpoint_sync_url: Some("https://mainnet.checkpoint.sigp.io".to_string()),
     };
 
-	(el, cl)
+    (el, cl)
 }
