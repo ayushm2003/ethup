@@ -6,6 +6,7 @@ pub struct ExecutionStatus {
     pub chain_id: u64,
     pub head_block: u64,
     pub sync: ElSyncState,
+    pub peers: u64,
 }
 
 pub enum ElSyncState {
@@ -51,6 +52,7 @@ pub struct ConsensusStatus {
     pub finalized_epoch: Option<u64>,
     pub is_syncing: bool,
     pub health: ClHealth,
+    pub peers: u64,
 }
 
 pub enum ClHealth {
@@ -100,9 +102,4 @@ pub struct ClSync {
     pub head_slot: String,
     pub is_syncing: bool,
     pub finalized_epoch: Option<String>,
-}
-
-#[derive(Deserialize)]
-pub struct ClPeers {
-    pub connected: u64,
 }

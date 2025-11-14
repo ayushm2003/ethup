@@ -14,6 +14,7 @@ pub async fn status(el: &ElConfig, cl: &ClConfig) -> anyhow::Result<()> {
     println!("  Chain ID: {}", el_status.chain_id);
     println!("  Executed Blocks: {}", el_status.head_block);
     println!("  Sync: {}", el_status.sync);
+    println!("  Peers: {}", el_status.peers);
 
     println!();
     println!("Consensus Client Running:");
@@ -35,6 +36,7 @@ pub async fn status(el: &ElConfig, cl: &ClConfig) -> anyhow::Result<()> {
     );
 
     println!("  Health: {}", cl_status.health);
+    println!("  Peers: {}", cl_status.peers);
 
     Ok(())
 }
@@ -63,10 +65,17 @@ pub async fn el_status(el: &ElConfig) -> anyhow::Result<ExecutionStatus> {
         serde_json::from_value(raw)?
     };
 
+    let peers_hex: String = el_rpc(el, "net_peerCount", json!([]))
+        .await?
+        .as_str()
+        .unwrap_or("?")
+        .to_string();
+
     let chain_id = parse_hex_u64(&chain_id_hex)?;
     let head_block = parse_hex_u64(&head_hex)?;
+    let peers = parse_hex_u64(&peers_hex)?;
 
-    let sync_state = match syncing {
+    let sync = match syncing {
         ElSyncing::NotSyncing(_) => ElSyncState::FullySynced,
         ElSyncing::Syncing {
             starting_block,
@@ -96,7 +105,8 @@ pub async fn el_status(el: &ElConfig) -> anyhow::Result<ExecutionStatus> {
         version,
         chain_id,
         head_block,
-        sync: sync_state,
+        sync,
+        peers,
     })
 }
 
@@ -111,12 +121,16 @@ async fn cl_status(cl: &ClConfig) -> anyhow::Result<ConsensusStatus> {
         None => None,
     };
 
+    let peers: Value = cl_get(cl, "eth/v1/node/peers").await?;
+    let peers = peers["data"].as_array().map(|a| a.len()).unwrap_or(0) as u64;
+
     Ok(ConsensusStatus {
         version: ver.data.version,
         head_slot,
         finalized_epoch,
         is_syncing: sync.data.is_syncing,
         health,
+        peers,
     })
 }
 
