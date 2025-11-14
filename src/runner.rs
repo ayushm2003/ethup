@@ -1,16 +1,17 @@
-use std::process::Stdio;
+use std::{fs::File, process::Stdio};
 use tokio::{
     process::{Child, Command},
     signal,
 };
 
 use crate::config::{ClConfig, ElConfig};
+use crate::layout::log_dir;
 
-pub fn spawn_el(cfg: &ElConfig) -> anyhow::Result<Child> {
+pub fn spawn_el(cfg: &ElConfig, quiet: &bool) -> anyhow::Result<Child> {
     std::fs::create_dir_all(&cfg.data_dir)?;
 
-    let child = Command::new(&cfg.bin)
-        .arg("node")
+    let mut cmd = Command::new(&cfg.bin);
+    cmd.arg("node")
         .arg("--chain")
         .arg(&cfg.chain)
         .arg("--datadir")
@@ -27,15 +28,24 @@ pub fn spawn_el(cfg: &ElConfig) -> anyhow::Result<Child> {
         .arg("--http.port")
         .arg(cfg.http_port.to_string())
         .arg("--http.api")
-        .arg("all")
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()?;
+        .arg("all");
+
+    let child = if *quiet {
+        std::fs::create_dir_all(log_dir())?;
+        let log = File::create(log_dir().join("el.log"))?;
+        cmd.stdout(Stdio::from(log.try_clone()?))
+            .stderr(Stdio::from(log))
+            .spawn()?
+    } else {
+        cmd.stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()?
+    };
 
     Ok(child)
 }
 
-pub fn spawn_cl(cfg: &ClConfig) -> anyhow::Result<Child> {
+pub fn spawn_cl(cfg: &ClConfig, quiet: &bool) -> anyhow::Result<Child> {
     std::fs::create_dir_all(&cfg.data_dir)?;
 
     let mut cmd = Command::new(&cfg.bin);
@@ -60,10 +70,17 @@ pub fn spawn_cl(cfg: &ClConfig) -> anyhow::Result<Child> {
         cmd.arg("--checkpoint-sync-url").arg(url);
     }
 
-    let child = cmd
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()?;
+    let child = if *quiet {
+        std::fs::create_dir_all(log_dir())?;
+        let log = File::create(log_dir().join("cl.log"))?;
+        cmd.stdout(Stdio::from(log.try_clone()?))
+            .stderr(Stdio::from(log))
+            .spawn()?
+    } else {
+        cmd.stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()?
+    };
 
     Ok(child)
 }

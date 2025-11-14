@@ -9,6 +9,9 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    Run,
+    Run {
+		#[arg(short, long)]
+		quiet: bool,
+	},
     Status,
 }

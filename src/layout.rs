@@ -11,3 +11,7 @@ pub fn secret_dir() -> PathBuf {
 pub fn data_dir() -> PathBuf {
     dirs::home_dir().unwrap().join(".ethup/data")
 }
+
+pub fn log_dir() -> PathBuf {
+	dirs::home_dir().unwrap().join(".ethup/logs")
+}
