@@ -29,26 +29,13 @@ pub fn spawn_el(cfg: &ElConfig, quiet: bool) -> anyhow::Result<Child> {
         .arg("--http.port")
         .arg(cfg.http_port.to_string())
         .arg("--http.api")
-        .arg("all")
-        .spawn()?;
-
+        .arg("all");
+	
     if quiet {
         cmd.stdout(Stdio::null()).stderr(Stdio::null());
     } else {
         cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
     }
-
-    // let child = if *quiet {
-    //     std::fs::create_dir_all(log_dir())?;
-    //     let log = File::create(log_dir().join("el.log"))?;
-    //     cmd.stdout(Stdio::from(log.try_clone()?))
-    //         .stderr(Stdio::from(log))
-    //         .spawn()?
-    // } else {
-    //     cmd.stdout(Stdio::inherit())
-    //         .stderr(Stdio::inherit())
-    //         .spawn()?
-    // };
 
     Ok(cmd.spawn()?)
 }
@@ -83,18 +70,6 @@ pub fn spawn_cl(cfg: &ClConfig, quiet: bool) -> anyhow::Result<Child> {
     } else {
         cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
     }
-
-    // let child = if *quiet {
-    //     std::fs::create_dir_all(log_dir())?;
-    //     let log = File::create(log_dir().join("cl.log"))?;
-    //     cmd.stdout(Stdio::from(log.try_clone()?))
-    //         .stderr(Stdio::from(log))
-    //         .spawn()?
-    // } else {
-    //     cmd.stdout(Stdio::inherit())
-    //         .stderr(Stdio::inherit())
-    //         .spawn()?
-    // };
 
     Ok(cmd.spawn()?)
 }
