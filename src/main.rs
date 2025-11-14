@@ -32,14 +32,14 @@ async fn main() -> anyhow::Result<()> {
 
             let _ = ensure_jwt().await?;
             let (el_hoodi, cl_hoodi) = mainnet_config();
-            let mut el = spawn_el(&el_hoodi, &quiet)?;
-            let mut cl = spawn_cl(&cl_hoodi, &quiet)?;
+            let mut el = spawn_el(&el_hoodi, quiet)?;
+            let mut cl = spawn_cl(&cl_hoodi, quiet)?;
 
             if quiet {
                 println!("Running quietly. Logs at {}", log_dir().display());
             }
 
-            start_nodes(&mut el, &mut cl).await?;
+            start_nodes(&mut el, &mut cl, quiet).await?;
         }
         Commands::Status => {
             let (el, cl) = mainnet_config();

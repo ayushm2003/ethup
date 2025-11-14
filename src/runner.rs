@@ -1,13 +1,14 @@
-use std::{fs::File, process::Stdio};
+use std::process::Stdio;
+
 use tokio::{
-    process::{Child, Command},
+    io::{AsyncBufReadExt, BufReader},
+    process::{Child, ChildStdout, Command},
     signal,
 };
 
 use crate::config::{ClConfig, ElConfig};
-use crate::layout::log_dir;
 
-pub fn spawn_el(cfg: &ElConfig, quiet: &bool) -> anyhow::Result<Child> {
+pub fn spawn_el(cfg: &ElConfig, quiet: bool) -> anyhow::Result<Child> {
     std::fs::create_dir_all(&cfg.data_dir)?;
 
     let mut cmd = Command::new(&cfg.bin);
@@ -28,24 +29,31 @@ pub fn spawn_el(cfg: &ElConfig, quiet: &bool) -> anyhow::Result<Child> {
         .arg("--http.port")
         .arg(cfg.http_port.to_string())
         .arg("--http.api")
-        .arg("all");
+        .arg("all")
+        .spawn()?;
 
-    let child = if *quiet {
-        std::fs::create_dir_all(log_dir())?;
-        let log = File::create(log_dir().join("el.log"))?;
-        cmd.stdout(Stdio::from(log.try_clone()?))
-            .stderr(Stdio::from(log))
-            .spawn()?
+    if quiet {
+        cmd.stdout(Stdio::null()).stderr(Stdio::null());
     } else {
-        cmd.stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .spawn()?
-    };
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    }
 
-    Ok(child)
+    // let child = if *quiet {
+    //     std::fs::create_dir_all(log_dir())?;
+    //     let log = File::create(log_dir().join("el.log"))?;
+    //     cmd.stdout(Stdio::from(log.try_clone()?))
+    //         .stderr(Stdio::from(log))
+    //         .spawn()?
+    // } else {
+    //     cmd.stdout(Stdio::inherit())
+    //         .stderr(Stdio::inherit())
+    //         .spawn()?
+    // };
+
+    Ok(cmd.spawn()?)
 }
 
-pub fn spawn_cl(cfg: &ClConfig, quiet: &bool) -> anyhow::Result<Child> {
+pub fn spawn_cl(cfg: &ClConfig, quiet: bool) -> anyhow::Result<Child> {
     std::fs::create_dir_all(&cfg.data_dir)?;
 
     let mut cmd = Command::new(&cfg.bin);
@@ -70,22 +78,37 @@ pub fn spawn_cl(cfg: &ClConfig, quiet: &bool) -> anyhow::Result<Child> {
         cmd.arg("--checkpoint-sync-url").arg(url);
     }
 
-    let child = if *quiet {
-        std::fs::create_dir_all(log_dir())?;
-        let log = File::create(log_dir().join("cl.log"))?;
-        cmd.stdout(Stdio::from(log.try_clone()?))
-            .stderr(Stdio::from(log))
-            .spawn()?
+    if quiet {
+        cmd.stdout(Stdio::null()).stderr(Stdio::null());
     } else {
-        cmd.stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .spawn()?
-    };
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    }
 
-    Ok(child)
+    // let child = if *quiet {
+    //     std::fs::create_dir_all(log_dir())?;
+    //     let log = File::create(log_dir().join("cl.log"))?;
+    //     cmd.stdout(Stdio::from(log.try_clone()?))
+    //         .stderr(Stdio::from(log))
+    //         .spawn()?
+    // } else {
+    //     cmd.stdout(Stdio::inherit())
+    //         .stderr(Stdio::inherit())
+    //         .spawn()?
+    // };
+
+    Ok(cmd.spawn()?)
 }
 
-pub async fn start_nodes(el: &mut Child, cl: &mut Child) -> anyhow::Result<()> {
+pub async fn start_nodes(el: &mut Child, cl: &mut Child, quiet: bool) -> anyhow::Result<()> {
+    if !quiet {
+        if let Some(stdout) = el.stdout.take() {
+			tokio::spawn(stream_logs("EL", "\x1b[32m", stdout));
+		}
+		if let Some(stdout) = cl.stdout.take() {
+			tokio::spawn(stream_logs("CL", "\x1b[34m", stdout));
+		}
+    }
+
     tokio::select! {
         _ = signal::ctrl_c()  => {
             eprintln!("Ctrl+C recieved, shutting down clients...");
@@ -119,4 +142,14 @@ pub async fn start_nodes(el: &mut Child, cl: &mut Child) -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+async fn stream_logs(prefix: &str, color: &str, stdout: ChildStdout) {
+    let mut reader = BufReader::new(stdout).lines();
+
+    const RESET: &str = "\x1b[0m";
+
+    while let Ok(Some(line)) = reader.next_line().await {
+        println!("{}[{}]{} {}", color, prefix, RESET, line);
+    }
 }
