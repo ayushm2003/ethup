@@ -13,7 +13,7 @@ use crate::chains::mainnet_config;
 use crate::install::{download_lighthouse, download_reth, ensure_jwt};
 use crate::layout::{bin_dir, log_dir};
 use crate::runner::{spawn_cl, spawn_el, start_nodes};
-use crate::status::status;
+use crate::status::logic::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
